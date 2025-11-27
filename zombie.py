@@ -153,6 +153,17 @@ class Zombie:
             return BehaviorTree.RUNNING
         pass
 
+    def run_away_boy(self):
+        self.state = 'Walk'
+        # 소년과 반대 방향으로 이동
+        dx = common.boy.x - self.x
+        dy = common.boy.y - self.y
+        self.dir = math.atan2(-dy, -dx)  # 반대 방향으로 각도 계산
+        distance = RUN_SPEED_PPS * game_framework.frame_time
+        self.x += distance * math.cos(self.dir)
+        self.y += distance * math.sin(self.dir)
+        return BehaviorTree.RUNNING
+        pass
 
 
     def get_patrol_location(self):
@@ -173,7 +184,7 @@ class Zombie:
         chase_if_boy_nearby = Sequence('소년이 근처에 있으면 추적', c1, a4)
         c2 = Condition('소년보다 공 개수가 적은가?',
                        lambda: BehaviorTree.SUCCESS if self.ball_count < common.boy.ball_count else BehaviorTree.FAIL)
-
+        a5 = Action('도망', self.run_away_boy)
 
         root = chase_or_wander = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망, 아니면 배회', chase_if_boy_nearby, wander)
 
