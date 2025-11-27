@@ -186,8 +186,9 @@ class Zombie:
                        lambda: BehaviorTree.SUCCESS if self.ball_count < common.boy.ball_count else BehaviorTree.FAIL)
         a5 = Action('도망', self.run_away_boy)
         chase_if_boy_ball_cnt = Sequence('소년과 공 개수 비교하여 적으면 도망', c1, c2, a5)
+        run_away_or_to_boy = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망', chase_if_boy_ball_cnt, chase_if_boy_nearby)
 
-        root = chase_or_wander = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망, 아니면 배회', chase_if_boy_nearby, wander)
+        root = chase_or_wander = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망, 아니면 배회', run_away_or_to_boy, wander)
 
         self.behavior_tree = BehaviorTree(root)
         pass
