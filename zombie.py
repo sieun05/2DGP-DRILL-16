@@ -6,6 +6,7 @@ import game_framework
 import game_world
 from behavior_tree import BehaviorTree, Action, Sequence, Condition, Selector
 
+import common
 
 # zombie Run Speed
 PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
@@ -58,6 +59,7 @@ class Zombie:
     def update(self):
         self.frame = (self.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % FRAMES_PER_ACTION
         # fill here
+        self.behavior_tree.run() # 매 프레임마다 행동 트리 실행
 
 
     def draw(self):
@@ -72,6 +74,8 @@ class Zombie:
 
         draw_rectangle(*self.get_bb())
 
+        draw_circle(self.x, self.y, int(7 * PIXEL_PER_METER), 255,255,0)  # 추적 범위 표시
+
     def handle_event(self, event):
         pass
 
@@ -82,50 +86,95 @@ class Zombie:
 
     def set_target_location(self, x=None, y=None):
         # 여기를 채우시오.
-        pass
+        self.tx, self.ty = x, y
+        return BehaviorTree.SUCCESS
 
 
 
-    def distance_less_than(self, x1, y1, x2, y2, r):
+
+    def distance_less_than(self, x1, y1, x2, y2, r): # 두 점 사이의 거리가 r보다 작은가?
         # 여기를 채우시오.
+        # 제곱근은 연산을 느리게 하므로 제곱근을 구하지 않고 대소 비교
+        distance_sq = (x1 - x2) ** 2 + (y1 - y2) ** 2
+        return distance_sq < (r * PIXEL_PER_METER) ** 2 # R은 거리단위라서 픽셀단위로 변경해줘야함
         pass
 
 
 
     def move_little_to(self, tx, ty):
         # 여기를 채우시오.
+        # get angle
+        self.dir = math.atan2(ty - self.y, tx - self.x)
+        distance = RUN_SPEED_PPS * game_framework.frame_time
+        self.x += distance * math.cos(self.dir)
+        self.y += distance * math.sin(self.dir)
         pass
 
 
 
     def move_to(self, r=0.5):
         # 여기를 채우시오.
-        pass
+        self.state = 'Walk'
+        self.move_little_to(self.tx, self.ty)
+
+        # 목표 지점에 거의 도착했으면 성공 리턴
+        if self.distance_less_than(self.x, self.y, self.tx, self.ty, r):
+            return BehaviorTree.SUCCESS
+        else:
+            return BehaviorTree.RUNNING
 
 
 
     def set_random_location(self):
         # 여기를 채우시오.
+        self.tx = random.randint(100, 1180)
+        self.ty = random.randint(100, 924)
+        return BehaviorTree.SUCCESS
         pass
 
 
     def if_boy_nearby(self, distance):
         # 여기를 채우시오.
+        if self.distance_less_than(common.boy.x, common.boy.y, self.x, self.y, distance):
+            return BehaviorTree.SUCCESS
+        else:
+            return BehaviorTree.FAIL
         pass
 
 
     def move_to_boy(self, r=0.5):
         # 여기를 채우시오.
+        self.state = 'Walk'
+        self.move_little_to(common.boy.x, common.boy.y)
+        # 소년에 근접했으면 성공 리턴
+        if self.distance_less_than(common.boy.x, common.boy.y, self.x, self.y, r):
+            return BehaviorTree.SUCCESS
+        else:
+            return BehaviorTree.RUNNING
         pass
+
 
 
     def get_patrol_location(self):
         # 여기를 채우시오.
+
         pass
 
 
-    def build_behavior_tree(self):
+    def build_behavior_tree(self): # sequence
         # 여기를 채우시오.
+        a1 = Action('목표 지점 설정', self.set_target_location, 1000, 200)
+        a2 = Action('목표 지점으로 이동', self.move_to)
+        move_to_target_location = Sequence('지정된 목표 지점으로 이동', a1, a2)
+        a3 = Action('랜덤 위치 설정', self.set_random_location)
+        wander = Sequence('배회', a3, a2)
+        c1 = Condition('소년이 근처에 있는가?', self.if_boy_nearby, 7)
+        a4 = Action('소년 추적', self.move_to_boy)
+        chase_if_boy_nearby = Sequence('소년이 근처에 있으면 추적', c1, a4)
+
+        root = chase_or_wander = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망, 아니면 배회', chase_if_boy_nearby, wander)
+
+        self.behavior_tree = BehaviorTree(root)
         pass
 
 
