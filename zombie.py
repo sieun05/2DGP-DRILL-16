@@ -171,6 +171,9 @@ class Zombie:
         c1 = Condition('소년이 근처에 있는가?', self.if_boy_nearby, 7)
         a4 = Action('소년 추적', self.move_to_boy)
         chase_if_boy_nearby = Sequence('소년이 근처에 있으면 추적', c1, a4)
+        c2 = Condition('소년보다 공 개수가 적은가?',
+                       lambda: BehaviorTree.SUCCESS if self.ball_count < common.boy.ball_count else BehaviorTree.FAIL)
+
 
         root = chase_or_wander = Selector('소년이 가까이 있으면 공 개수 비교하여 추적 or 도망, 아니면 배회', chase_if_boy_nearby, wander)
 
